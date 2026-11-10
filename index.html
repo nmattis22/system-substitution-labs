@@ -1,0 +1,988 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Systems of Equations: Substitution Method Studio</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Canvas Confetti -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Fira+Code:wght@500;700&display=swap');
+
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background-color: #0f172a;
+            color: #f8fafc;
+        }
+
+        .font-mono {
+            font-family: 'Fira Code', monospace;
+        }
+
+        /* Drag and Drop styles */
+        .draggable-item {
+            cursor: grab;
+            transition: all 0.2s ease;
+            touch-action: none;
+            user-select: none;
+        }
+        .draggable-item:active {
+            cursor: grabbing;
+            transform: scale(1.05);
+        }
+
+        .drop-target {
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+            border: 2px dashed #64748b;
+        }
+
+        .drop-target.drag-over {
+            border-color: #38bdf8;
+            background-color: rgba(56, 189, 248, 0.2);
+            transform: scale(1.08);
+            box-shadow: 0 0 15px rgba(56, 189, 248, 0.5);
+        }
+
+        .drop-target.success-drop {
+            border-color: #10b981;
+            background-color: rgba(16, 185, 129, 0.2);
+        }
+
+        .glass-card {
+            background: rgba(30, 41, 59, 0.7);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .pulse-glow {
+            animation: pulse-glow-anim 2s infinite;
+        }
+
+        @keyframes pulse-glow-anim {
+            0%, 100% { box-shadow: 0 0 10px rgba(99, 102, 241, 0.4); }
+            50% { box-shadow: 0 0 25px rgba(99, 102, 241, 0.8); }
+        }
+
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #0f172a;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #334155;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col justify-between overflow-x-hidden">
+
+    <!-- TOP NAV BAR -->
+    <header class="w-full glass-card border-b border-slate-800 px-6 py-4 sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto flex flex-wrap justify-between items-center gap-4">
+            <div class="flex items-center gap-3">
+                <div class="p-2.5 bg-gradient-to-tr from-indigo-600 to-violet-500 rounded-xl shadow-lg shadow-indigo-500/30">
+                    <i class="fa-solid fa-square-root-variable text-xl text-white"></i>
+                </div>
+                <div>
+                    <h1 class="font-extrabold text-lg sm:text-xl text-transparent bg-clip-text bg-gradient-to-r from-white via-slate-200 to-indigo-300">
+                        System Substitution Studio
+                    </h1>
+                    <p class="text-xs text-slate-400 font-medium">10th Grade Interactive Algebra Lab</p>
+                </div>
+            </div>
+
+            <!-- LEVEL PROGRESS TRACKER -->
+            <div class="flex items-center gap-4">
+                <button id="level-menu-btn" onclick="toggleLevelMenu()" class="flex items-center gap-2 bg-slate-800 hover:bg-slate-700 text-slate-200 text-sm font-semibold px-4 py-2 rounded-xl transition border border-slate-700">
+                    <i class="fa-solid fa-layer-group text-indigo-400"></i>
+                    <span>Level <span id="current-level-num">1</span>/10</span>
+                    <i class="fa-solid fa-chevron-down text-xs ml-1"></i>
+                </button>
+
+                <div class="flex items-center gap-1.5 bg-amber-500/10 border border-amber-500/30 px-3.5 py-1.5 rounded-xl text-amber-400 font-bold text-sm">
+                    <i class="fa-solid fa-star text-amber-400"></i>
+                    <span id="score-counter">0</span> Stars
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- LEVEL SELECTION MODAL -->
+    <div id="level-modal" class="hidden fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center p-4">
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-2xl w-full p-6 shadow-2xl">
+            <div class="flex justify-between items-center mb-6">
+                <div>
+                    <h2 class="text-xl font-bold text-white">Select Progression Level</h2>
+                    <p class="text-sm text-slate-400">Master substitution across 10 unique linear systems</p>
+                </div>
+                <button onclick="toggleLevelMenu()" class="text-slate-400 hover:text-white text-lg p-2">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+            
+            <div id="level-grid" class="grid grid-cols-2 sm:grid-cols-5 gap-3">
+                <!-- Dynamically generated levels -->
+            </div>
+        </div>
+    </div>
+
+    <!-- MAIN INTERACTIVE CONTAINER -->
+    <main class="max-w-6xl mx-auto w-full p-4 sm:p-6 flex-grow flex flex-col gap-6">
+
+        <!-- PROGRESS BAR -->
+        <div class="w-full bg-slate-900 rounded-full h-2.5 p-0.5 border border-slate-800">
+            <div id="progress-bar-fill" class="bg-gradient-to-r from-indigo-500 via-purple-500 to-teal-400 h-1.5 rounded-full transition-all duration-500" style="width: 10%;"></div>
+        </div>
+
+        <!-- ALWAYS VISIBLE PINNED ORIGINAL SYSTEM HEADER CARD -->
+        <div class="glass-card rounded-2xl p-4 sm:p-5 border border-indigo-500/30 shadow-xl flex flex-col md:flex-row items-center justify-between gap-4 bg-slate-900/90">
+            <div class="flex items-center gap-3">
+                <span class="text-xs font-extrabold uppercase bg-indigo-500/20 text-indigo-300 px-3 py-1 rounded-md border border-indigo-500/30">Original System</span>
+                <span class="text-xs text-slate-400">Target problem to solve</span>
+            </div>
+
+            <div class="flex items-center gap-6 font-mono text-base sm:text-xl font-bold text-white bg-slate-950 px-6 py-2.5 rounded-xl border border-slate-800">
+                <div id="pinned-eq1" class="text-teal-400">y = 3x + 1</div>
+                <span class="text-slate-600 font-normal">|</span>
+                <div id="pinned-eq2" class="text-indigo-300">2x + 4y = 18</div>
+            </div>
+
+            <button onclick="resetCurrentLevel()" class="text-slate-400 hover:text-slate-200 text-xs font-semibold flex items-center gap-1.5 bg-slate-800 px-3 py-1.5 rounded-lg border border-slate-700 transition">
+                <i class="fa-solid fa-rotate-left"></i> Reset Level
+            </button>
+        </div>
+
+        <!-- MAIN LAB BOARD -->
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+            <!-- LEFT SIDE: STEPS & GUIDANCE -->
+            <div class="lg:col-span-4 flex flex-col gap-4">
+                
+                <!-- LEVEL INFO & INSTRUCTION CARD -->
+                <div class="glass-card rounded-2xl p-5 border-l-4 border-l-indigo-500 shadow-xl">
+                    <div class="flex items-center justify-between mb-2">
+                        <span id="level-title-tag" class="text-xs font-bold uppercase tracking-wider text-indigo-400 bg-indigo-500/10 px-2.5 py-1 rounded-md border border-indigo-500/20">Level 1</span>
+                        <span id="difficulty-badge" class="text-xs text-emerald-400 font-semibold flex items-center gap-1">
+                            <i class="fa-solid fa-circle text-[8px]"></i> Active Level
+                        </span>
+                    </div>
+                    <h2 id="level-concept" class="text-base font-bold text-white mb-2">Basic Variable Substitution</h2>
+                    <p id="step-instruction" class="text-sm text-slate-300 leading-relaxed">
+                        Drag the expression equal to <span class="text-teal-400 font-mono font-bold">y</span> and drop it directly onto the target variable inside Equation 2!
+                    </p>
+                </div>
+
+                <!-- STEP TRACKER PANELS -->
+                <div class="glass-card rounded-2xl p-5 flex flex-col gap-3">
+                    <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Solving Pipeline</h3>
+                    
+                    <div id="pipeline-step-1" class="flex items-center gap-3 p-3 rounded-xl bg-indigo-500/20 border border-indigo-500/40 text-indigo-200 transition-all">
+                        <div class="w-7 h-7 rounded-lg bg-indigo-600 text-white flex items-center justify-center font-bold text-xs shrink-0">1</div>
+                        <div id="pipeline-step-1-label" class="text-xs font-semibold">Substitute Expression</div>
+                    </div>
+
+                    <div id="pipeline-step-2" class="flex items-center gap-3 p-3 rounded-xl bg-slate-800/60 border border-slate-700/50 text-slate-500 transition-all">
+                        <div class="w-7 h-7 rounded-lg bg-slate-700 text-slate-400 flex items-center justify-center font-bold text-xs shrink-0">2</div>
+                        <div id="pipeline-step-2-label" class="text-xs font-semibold">Solve 1st Variable</div>
+                    </div>
+
+                    <div id="pipeline-step-3" class="flex items-center gap-3 p-3 rounded-xl bg-slate-800/60 border border-slate-700/50 text-slate-500 transition-all">
+                        <div class="w-7 h-7 rounded-lg bg-slate-700 text-slate-400 flex items-center justify-center font-bold text-xs shrink-0">3</div>
+                        <div id="pipeline-step-3-label" class="text-xs font-semibold">Solve 2nd Variable</div>
+                    </div>
+
+                    <div id="pipeline-step-4" class="flex items-center gap-3 p-3 rounded-xl bg-slate-800/60 border border-slate-700/50 text-slate-500 transition-all">
+                        <div class="w-7 h-7 rounded-lg bg-slate-700 text-slate-400 flex items-center justify-center font-bold text-xs shrink-0">4</div>
+                        <div id="pipeline-step-4-label" class="text-xs font-semibold">Verify Solution (x, y)</div>
+                    </div>
+
+                    <div id="pipeline-step-5" class="hidden flex items-center gap-3 p-3 rounded-xl bg-slate-800/60 border border-slate-700/50 text-slate-500 transition-all">
+                        <div class="w-7 h-7 rounded-lg bg-slate-700 text-slate-400 flex items-center justify-center font-bold text-xs shrink-0">5</div>
+                        <div id="pipeline-step-5-label" class="text-xs font-semibold">Verify Solution (x, y)</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- RIGHT SIDE: INTERACTIVE CANVAS / WORKSPACE -->
+            <div class="lg:col-span-8 flex flex-col gap-6">
+
+                <!-- MAIN WORKSPACE CARD -->
+                <div class="glass-card rounded-2xl p-6 sm:p-8 flex flex-col gap-8 relative min-h-[440px] justify-between shadow-2xl">
+                    
+                    <!-- DYNAMIC STEP VIEWPORT -->
+                    <div id="workspace-content" class="flex flex-col gap-8">
+
+                        <!-- EQUATIONS DISPLAY AREA (STEP 1) -->
+                        <div id="equations-container" class="flex flex-col gap-6">
+                            
+                            <!-- EQUATION 1 (ISOLATED EQUATION) -->
+                            <div class="bg-slate-900/80 border border-teal-500/30 rounded-2xl p-4 sm:p-5 flex flex-col sm:flex-row items-center justify-between gap-4 relative overflow-hidden group">
+                                <div class="absolute left-0 top-0 bottom-0 w-2 bg-teal-500"></div>
+                                <div class="flex items-center gap-3">
+                                    <span class="text-xs font-extrabold uppercase bg-teal-500/10 text-teal-400 px-3 py-1 rounded-lg border border-teal-500/20">Eq 1</span>
+                                    <span class="text-xs text-slate-400">Isolated Expression</span>
+                                </div>
+
+                                <!-- EQUATION MATH PRESENTATION & DRAGGABLE PILL -->
+                                <div class="flex items-center gap-2 sm:gap-3 text-lg sm:text-2xl font-bold font-mono tracking-wide text-white">
+                                    <span id="eq1-var" class="text-teal-400">y</span>
+                                    <span class="text-slate-500">=</span>
+                                    <!-- THE DRAGGABLE PILL -->
+                                    <div id="draggable-expression" 
+                                         draggable="true" 
+                                         class="draggable-item bg-gradient-to-r from-teal-500 to-emerald-500 hover:from-teal-400 hover:to-emerald-400 text-slate-950 font-bold px-4 py-2 rounded-xl shadow-lg shadow-teal-500/20 flex items-center gap-2 border border-teal-300/40 cursor-grab">
+                                        <i class="fa-solid fa-grip-dots-vertical text-slate-900/60 text-xs"></i>
+                                        <span id="drag-text">3x + 1</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- ARROW INDICATOR -->
+                            <div class="flex justify-center text-slate-600">
+                                <i class="fa-solid fa-arrow-down-long text-xl animate-bounce"></i>
+                            </div>
+
+                            <!-- EQUATION 2 (TARGET EQUATION) -->
+                            <div class="bg-slate-900/80 border border-indigo-500/30 rounded-2xl p-4 sm:p-5 flex flex-col sm:flex-row items-center justify-between gap-4 relative overflow-hidden">
+                                <div class="absolute left-0 top-0 bottom-0 w-2 bg-indigo-500"></div>
+                                <div class="flex items-center gap-3">
+                                    <span class="text-xs font-extrabold uppercase bg-indigo-500/10 text-indigo-400 px-3 py-1 rounded-lg border border-indigo-500/20">Eq 2</span>
+                                    <span class="text-slate-400 text-xs">Target System</span>
+                                </div>
+
+                                <!-- TARGET EQUATION WITH DROP ZONE -->
+                                <div id="target-equation-display" class="flex flex-wrap items-center justify-center gap-2 text-lg sm:text-2xl font-bold font-mono text-white">
+                                    <!-- Formatted dynamically in JS -->
+                                </div>
+                            </div>
+
+                        </div>
+
+                        <!-- INTERACTIVE STEP 2, 3 & 4 CONTAINER -->
+                        <div id="solving-steps-container" class="hidden flex flex-col gap-6">
+                            <!-- Dynamic Content generated for steps -->
+                        </div>
+
+                    </div>
+
+                    <!-- STEP NAVIGATION / ACTION BAR -->
+                    <div class="flex justify-end items-center border-t border-slate-800 pt-5 mt-4">
+                        <button id="next-step-btn" disabled class="opacity-50 cursor-not-allowed bg-gradient-to-r from-indigo-500 to-purple-600 text-white font-bold px-6 py-2.5 rounded-xl text-sm shadow-lg shadow-indigo-500/20 transition flex items-center gap-2">
+                            <span>Continue</span>
+                            <i class="fa-solid fa-arrow-right text-xs"></i>
+                        </button>
+                    </div>
+
+                </div>
+            </div>
+
+        </div>
+
+    </main>
+
+    <!-- FOOTER -->
+    <footer class="w-full text-center py-4 border-t border-slate-800/80 text-xs text-slate-500">
+        Systems of Linear Equations • Substitution Method Interactive Module
+    </footer>
+
+    <!-- LOGIC SCRIPT -->
+    <script>
+        /**
+         * 10 DISTINCT 10TH-GRADE LEVELS OF VARYING DIFFICULTY
+         */
+        const LEVELS = [
+            {
+                level: 1,
+                title: "Basic Variable Substitution",
+                concept: "Simple variable substitution where one variable is isolated.",
+                needsIsolation: false,
+                isolatedVar: "y",
+                expression: "3x + 1",
+                originalEq1Display: "y = 3x + 1",
+                targetEq: { prefix: "2x + 4", var: "y", suffix: " = 18" },
+                solX: 1,
+                solY: 4,
+                solvedVar: "x"
+            },
+            {
+                level: 2,
+                title: "Negative Terms in Expression",
+                concept: "Managing subtraction when substituting expressions into equations.",
+                needsIsolation: false,
+                isolatedVar: "y",
+                expression: "2x - 3",
+                originalEq1Display: "y = 2x - 3",
+                targetEq: { prefix: "5x - 2", var: "y", suffix: " = 7" },
+                solX: 1,
+                solY: -1,
+                solvedVar: "x"
+            },
+            {
+                level: 3,
+                title: "Substituting for X First",
+                concept: "Isolating 'x' instead of 'y' first.",
+                needsIsolation: false,
+                isolatedVar: "x",
+                expression: "y + 4",
+                originalEq1Display: "x = y + 4",
+                targetEq: { prefix: "3", var: "x", suffix: " + 2y = 22" },
+                solX: 6,
+                solY: 2,
+                solvedVar: "y"
+            },
+            {
+                level: 4,
+                title: "Distributive Multipliers",
+                concept: "Multiplying larger coefficients through parentheses.",
+                needsIsolation: false,
+                isolatedVar: "y",
+                expression: "4x - 5",
+                originalEq1Display: "y = 4x - 5",
+                targetEq: { prefix: "3x + 3", var: "y", suffix: " = 15" },
+                solX: 2,
+                solY: 3,
+                solvedVar: "x"
+            },
+            {
+                level: 5,
+                title: "Multi-Step Linear Equations",
+                concept: "Handling expressions with negative variable terms.",
+                needsIsolation: false,
+                isolatedVar: "x",
+                expression: "10 - 2y",
+                originalEq1Display: "x = 10 - 2y",
+                targetEq: { prefix: "4", var: "x", suffix: " - 3y = 7" },
+                solX: 4,
+                solY: 3,
+                solvedVar: "y"
+            },
+            {
+                level: 6,
+                title: "Combining Like Terms with Negatives",
+                concept: "Solving linear systems containing negative linear coefficients.",
+                needsIsolation: false,
+                isolatedVar: "y",
+                expression: "-x + 5",
+                originalEq1Display: "y = -x + 5",
+                targetEq: { prefix: "2x + 4", var: "y", suffix: " = 14" },
+                solX: 3,
+                solY: 2,
+                solvedVar: "x"
+            },
+            {
+                level: 7,
+                title: "Double Negative Terms",
+                concept: "Subtracting a negative binomial expression.",
+                needsIsolation: false,
+                isolatedVar: "y",
+                expression: "3 - x",
+                originalEq1Display: "y = 3 - x",
+                targetEq: { prefix: "4x - 2", var: "y", suffix: " = 12" },
+                solX: 3,
+                solY: 0,
+                solvedVar: "x"
+            },
+            {
+                level: 8,
+                title: "Isolating Variables First (Standard Form)",
+                concept: "Neither variable is isolated! Rearrange Eq 1 to isolate y before substituting.",
+                needsIsolation: true,
+                originalEq1Display: "2x + y = 11",
+                originalEq2Display: "3x - 2y = 6",
+                isolateEquationNum: 1,
+                isolatedVar: "y",
+                expression: "11 - 2x",
+                validExpressions: ["11-2x", "-2x+11", "11 - 2x", "-2x + 11"],
+                targetEq: { prefix: "3x - 2", var: "y", suffix: " = 6" },
+                solX: 4,
+                solY: 3,
+                solvedVar: "x"
+            },
+            {
+                level: 9,
+                title: "Advanced Standard Form Isolation",
+                concept: "Neither variable is isolated. Rearrange Eq 1 to isolate x before substituting.",
+                needsIsolation: true,
+                originalEq1Display: "x - 2y = 1",
+                originalEq2Display: "3x + 4y = 43",
+                isolateEquationNum: 1,
+                isolatedVar: "x",
+                expression: "1 + 2y",
+                validExpressions: ["1+2y", "2y+1", "1 + 2y", "2y + 1"],
+                targetEq: { prefix: "3", var: "x", suffix: " + 4y = 43" },
+                solX: 9,
+                solY: 4,
+                solvedVar: "y"
+            },
+            {
+                level: 10,
+                title: "Standard Form Isolation Mastery",
+                concept: "Neither variable is isolated. Isolate y in Eq 1 first before substituting.",
+                needsIsolation: true,
+                originalEq1Display: "3x - y = 7",
+                originalEq2Display: "2x + 4y = 28",
+                isolateEquationNum: 1,
+                isolatedVar: "y",
+                expression: "3x - 7",
+                validExpressions: ["3x-7", "-7+3x", "3x - 7", "-7 + 3x"],
+                targetEq: { prefix: "2x + 4", var: "y", suffix: " = 28" },
+                solX: 4,
+                solY: 5,
+                solvedVar: "x"
+            }
+        ];
+
+        // APP STATE
+        let currentLevelIdx = 0;
+        let currentStep = 1;
+        let stars = 0;
+
+        // DOM ELEMENTS
+        const currentLevelNumEl = document.getElementById('current-level-num');
+        const levelTitleTagEl = document.getElementById('level-title-tag');
+        const levelConceptEl = document.getElementById('level-concept');
+        const stepInstructionEl = document.getElementById('step-instruction');
+        const scoreCounterEl = document.getElementById('score-counter');
+        const progressBarFillEl = document.getElementById('progress-bar-fill');
+        const pinnedEq1El = document.getElementById('pinned-eq1');
+        const pinnedEq2El = document.getElementById('pinned-eq2');
+        const targetEqDisplayEl = document.getElementById('target-equation-display');
+        const draggableExpressionEl = document.getElementById('draggable-expression');
+        const dragTextEl = document.getElementById('drag-text');
+        const eq1VarEl = document.getElementById('eq1-var');
+        const solvingStepsContainerEl = document.getElementById('solving-steps-container');
+        const nextStepBtn = document.getElementById('next-step-btn');
+
+        // INITIALIZATION
+        window.onload = function() {
+            renderLevelMenu();
+            loadLevel(0);
+        };
+
+        function renderLevelMenu() {
+            const grid = document.getElementById('level-grid');
+            grid.innerHTML = '';
+            LEVELS.forEach((lvl, idx) => {
+                const btn = document.createElement('button');
+                btn.className = `p-3 rounded-xl font-bold flex flex-col items-center justify-center gap-1 border transition ${
+                    idx === currentLevelIdx 
+                    ? 'bg-indigo-600 border-indigo-400 text-white shadow-lg' 
+                    : 'bg-slate-800 border-slate-700 text-slate-300 hover:bg-slate-700'
+                }`;
+                btn.onclick = () => {
+                    toggleLevelMenu();
+                    loadLevel(idx);
+                };
+                btn.innerHTML = `
+                    <span class="text-xs opacity-75">Lvl</span>
+                    <span class="text-lg">${lvl.level}</span>
+                `;
+                grid.appendChild(btn);
+            });
+        }
+
+        function toggleLevelMenu() {
+            const modal = document.getElementById('level-modal');
+            modal.classList.toggle('hidden');
+        }
+
+        function setupPipelineLabels(lvl) {
+            const step5El = document.getElementById('pipeline-step-5');
+            if (lvl.needsIsolation) {
+                step5El.classList.remove('hidden');
+                document.getElementById('pipeline-step-1-label').innerText = "Isolate Variable";
+                document.getElementById('pipeline-step-2-label').innerText = "Substitute Expression";
+                document.getElementById('pipeline-step-3-label').innerText = "Solve 1st Variable";
+                document.getElementById('pipeline-step-4-label').innerText = "Solve 2nd Variable";
+                document.getElementById('pipeline-step-5-label').innerText = "Verify Solution (x, y)";
+            } else {
+                step5El.classList.add('hidden');
+                document.getElementById('pipeline-step-1-label').innerText = "Substitute Expression";
+                document.getElementById('pipeline-step-2-label').innerText = "Solve 1st Variable";
+                document.getElementById('pipeline-step-3-label').innerText = "Solve 2nd Variable";
+                document.getElementById('pipeline-step-4-label').innerText = "Verify Solution (x, y)";
+            }
+        }
+
+        function loadLevel(idx) {
+            currentLevelIdx = idx;
+            const lvlData = LEVELS[idx];
+            setupPipelineLabels(lvlData);
+
+            // Update UI headers
+            currentLevelNumEl.innerText = lvlData.level;
+            levelTitleTagEl.innerText = `Level ${lvlData.level}`;
+            levelConceptEl.innerText = lvlData.title;
+
+            // Update Pinned Original System Card (Visible at all times)
+            pinnedEq1El.innerText = lvlData.originalEq1Display || `${lvlData.isolatedVar} = ${lvlData.expression}`;
+            pinnedEq2El.innerText = lvlData.originalEq2Display || `${lvlData.targetEq.prefix}${lvlData.targetEq.var}${lvlData.targetEq.suffix}`;
+
+            // Reset progress bar
+            progressBarFillEl.style.width = `${((idx + 1) / LEVELS.length) * 100}%`;
+
+            // Reset UI containers
+            solvingStepsContainerEl.classList.add('hidden');
+            solvingStepsContainerEl.innerHTML = '';
+            document.getElementById('equations-container').classList.remove('hidden');
+            renderLevelMenu();
+
+            if (lvlData.needsIsolation) {
+                currentStep = 1;
+                setupStepIsolateVariable();
+            } else {
+                currentStep = 1;
+                setupStepDragAndDrop();
+            }
+        }
+
+        /**
+         * STEP 1 FOR LEVELS 9 & 10: ISOLATE VARIABLE FIRST
+         */
+        function setupStepIsolateVariable() {
+            const lvlData = LEVELS[currentLevelIdx];
+            updatePipelineUI(1);
+
+            stepInstructionEl.innerHTML = `Neither variable is isolated in Equation 1 (<span class="text-teal-400 font-mono">${lvlData.originalEq1Display}</span>). Rearrange Equation 1 to isolate <span class="text-teal-400 font-mono font-bold">${lvlData.isolatedVar}</span>!`;
+
+            // Display isolation input in place of standard drag-drop
+            document.getElementById('equations-container').classList.add('hidden');
+            solvingStepsContainerEl.classList.remove('hidden');
+
+            solvingStepsContainerEl.innerHTML = `
+                <div class="bg-slate-900/90 border border-teal-500/30 rounded-2xl p-6 flex flex-col gap-6">
+                    <div class="flex items-center gap-3">
+                        <span class="text-xs font-extrabold uppercase bg-teal-500/10 text-teal-400 px-3 py-1 rounded-lg border border-teal-500/20">Step 1: Isolate Variable</span>
+                        <span class="text-xs text-slate-400">Rearrange Equation 1</span>
+                    </div>
+
+                    <div class="text-xl sm:text-2xl font-mono font-bold text-white bg-slate-950 p-4 rounded-xl border border-slate-800 text-center">
+                        Equation 1: <span class="text-teal-400">${lvlData.originalEq1Display}</span>
+                    </div>
+
+                    <div class="bg-teal-950/40 border border-teal-500/20 p-4 rounded-xl text-xs sm:text-sm text-teal-200">
+                        <i class="fa-solid fa-lightbulb text-teal-400 mr-1.5"></i>
+                        <span>Isolate <b class="text-white">${lvlData.isolatedVar}</b> by moving other terms to the right side of the equals sign.</span>
+                    </div>
+
+                    <div class="p-4 bg-teal-500/10 border border-teal-500/30 rounded-xl flex flex-col sm:flex-row items-center justify-between gap-4">
+                        <label class="text-sm font-bold text-white">Isolated Form:</label>
+                        <div class="flex items-center gap-3">
+                            <span class="font-mono text-xl font-bold text-teal-300">${lvlData.isolatedVar} =</span>
+                            <input type="text" id="isolated-expr-input" class="w-48 bg-slate-950 border-2 border-teal-500/50 rounded-xl px-3 py-2 text-center text-white font-mono font-bold text-lg focus:outline-none focus:border-teal-400" placeholder="e.g. 11 - 2x">
+                            <button onclick="checkIsolatedVariable()" class="bg-teal-600 hover:bg-teal-500 text-slate-950 font-bold px-4 py-2 rounded-xl text-sm transition shadow-md">
+                                Verify
+                            </button>
+                        </div>
+                    </div>
+                    <div id="isolate-feedback" class="text-xs text-center font-semibold hidden"></div>
+                </div>
+            `;
+
+            nextStepBtn.disabled = true;
+            nextStepBtn.classList.add('opacity-50', 'cursor-not-allowed');
+            nextStepBtn.onclick = null;
+        }
+
+        function checkIsolatedVariable() {
+            const lvl = LEVELS[currentLevelIdx];
+            const inputVal = document.getElementById('isolated-expr-input').value.replace(/\s+/g, '').toLowerCase();
+            const feedbackEl = document.getElementById('isolate-feedback');
+
+            const isCorrect = lvl.validExpressions.some(valid => valid.replace(/\s+/g, '').toLowerCase() === inputVal);
+
+            feedbackEl.classList.remove('hidden', 'text-emerald-400', 'text-rose-400');
+
+            if (isCorrect) {
+                feedbackEl.classList.add('text-emerald-400');
+                feedbackEl.innerHTML = `<i class="fa-solid fa-circle-check"></i> Correct! Equation 1 is isolated: ${lvl.isolatedVar} = ${lvl.expression}. Click Continue to perform drag-and-drop substitution!`;
+
+                nextStepBtn.disabled = false;
+                nextStepBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+                nextStepBtn.classList.add('pulse-glow');
+                nextStepBtn.onclick = () => {
+                    currentStep = 2;
+                    setupStepDragAndDrop();
+                };
+            } else {
+                feedbackEl.classList.add('text-rose-400');
+                feedbackEl.innerHTML = `<i class="fa-solid fa-circle-xmark"></i> Incorrect rearrangement. Re-check your algebraic isolation of ${lvl.isolatedVar}.`;
+            }
+        }
+
+        /**
+         * SETUP DRAG AND DROP STEP
+         */
+        function setupStepDragAndDrop() {
+            const lvlData = LEVELS[currentLevelIdx];
+            const activeStepNum = lvlData.needsIsolation ? 2 : 1;
+            updatePipelineUI(activeStepNum);
+
+            stepInstructionEl.innerHTML = `Drag the expression equal to <span class="text-teal-400 font-mono font-bold">${lvlData.isolatedVar}</span> and drop it directly onto the target variable <span class="text-indigo-400 font-mono font-bold">${lvlData.targetEq.var}</span> in Equation 2!`;
+
+            // Reset display view
+            solvingStepsContainerEl.classList.add('hidden');
+            document.getElementById('equations-container').classList.remove('hidden');
+
+            // Setup Eq 1
+            eq1VarEl.innerText = lvlData.isolatedVar;
+            dragTextEl.innerText = lvlData.expression;
+            draggableExpressionEl.style.display = 'flex';
+
+            // Setup Eq 2 Target Layout
+            targetEqDisplayEl.innerHTML = `
+                <span>${lvlData.targetEq.prefix}</span>
+                <div id="drop-target-zone" class="drop-target bg-indigo-500/10 border-indigo-400/50 text-indigo-300 rounded-xl px-4 py-1.5 min-w-[50px] inline-flex items-center justify-center font-bold font-mono">
+                    ${lvlData.targetEq.var}
+                </div>
+                <span>${lvlData.targetEq.suffix}</span>
+            `;
+
+            // Disable Next Button until drop completion
+            nextStepBtn.disabled = true;
+            nextStepBtn.classList.add('opacity-50', 'cursor-not-allowed');
+            nextStepBtn.onclick = null;
+
+            initDragAndDrop();
+        }
+
+        /**
+         * DRAG AND DROP HANDLERS (MOUSE + TOUCH)
+         */
+        function initDragAndDrop() {
+            const dragItem = document.getElementById('draggable-expression');
+            const dropZone = document.getElementById('drop-target-zone');
+
+            if (!dragItem || !dropZone) return;
+
+            // HTML5 Drag Events for Desktop
+            dragItem.addEventListener('dragstart', (e) => {
+                e.dataTransfer.setData('text/plain', LEVELS[currentLevelIdx].expression);
+                dragItem.classList.add('opacity-50');
+            });
+
+            dragItem.addEventListener('dragend', () => {
+                dragItem.classList.remove('opacity-50');
+            });
+
+            dropZone.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                dropZone.classList.add('drag-over');
+            });
+
+            dropZone.addEventListener('dragleave', () => {
+                dropZone.classList.remove('drag-over');
+            });
+
+            dropZone.addEventListener('drop', (e) => {
+                e.preventDefault();
+                dropZone.classList.remove('drag-over');
+                handleSuccessfulDrop();
+            });
+
+            // Touch Drag Support for Tablets/Mobile
+            let activeTouch = false;
+
+            dragItem.addEventListener('touchstart', (e) => {
+                activeTouch = true;
+                dragItem.classList.add('opacity-70', 'scale-105');
+            }, { passive: true });
+
+            dragItem.addEventListener('touchmove', (e) => {
+                if (!activeTouch) return;
+                const touch = e.touches[0];
+                const targetEl = document.elementFromPoint(touch.clientX, touch.clientY);
+
+                if (targetEl && (targetEl === dropZone || dropZone.contains(targetEl))) {
+                    dropZone.classList.add('drag-over');
+                } else {
+                    dropZone.classList.remove('drag-over');
+                }
+            }, { passive: true });
+
+            dragItem.addEventListener('touchend', (e) => {
+                if (!activeTouch) return;
+                activeTouch = false;
+                dragItem.classList.remove('opacity-70', 'scale-105');
+                const touch = e.changedTouches[0];
+                const targetEl = document.elementFromPoint(touch.clientX, touch.clientY);
+
+                if (targetEl && (targetEl === dropZone || dropZone.contains(targetEl))) {
+                    dropZone.classList.remove('drag-over');
+                    handleSuccessfulDrop();
+                }
+            });
+        }
+
+        /**
+         * STEP SUCCESS HANDLER FOR DRAG AND DROP
+         */
+        function handleSuccessfulDrop() {
+            const lvl = LEVELS[currentLevelIdx];
+            const dropZone = document.getElementById('drop-target-zone');
+
+            // Play animation feedback
+            dropZone.classList.add('success-drop');
+            dropZone.innerHTML = `(<span class="text-teal-300 font-bold">${lvl.expression}</span>)`;
+
+            // Visual celebration pulse
+            confetti({
+                particleCount: 35,
+                spread: 50,
+                origin: { y: 0.6 }
+            });
+
+            // Update step guidance
+            stepInstructionEl.innerHTML = `Great job! Expression substituted into Equation 2. Click <b>Continue</b> to proceed to solving.`;
+
+            // Enable Next Button
+            nextStepBtn.disabled = false;
+            nextStepBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+            nextStepBtn.classList.add('pulse-glow');
+            nextStepBtn.onclick = setupStepSolveFirstVar;
+        }
+
+        /**
+         * SOLVE FIRST VARIABLE (No spoilers / solutions shown)
+         */
+        function setupStepSolveFirstVar() {
+            const lvl = LEVELS[currentLevelIdx];
+            const activeStepNum = lvl.needsIsolation ? 3 : 2;
+            currentStep = activeStepNum;
+            updatePipelineUI(activeStepNum);
+
+            nextStepBtn.classList.remove('pulse-glow');
+            nextStepBtn.disabled = true;
+            nextStepBtn.classList.add('opacity-50', 'cursor-not-allowed');
+
+            const firstVar = lvl.solvedVar; // 'x' or 'y'
+
+            stepInstructionEl.innerHTML = `Combine like terms and solve for <span class="text-indigo-400 font-mono font-bold">${firstVar}</span>.`;
+
+            // Hide initial drag view, render solving workspace
+            document.getElementById('equations-container').classList.add('hidden');
+            solvingStepsContainerEl.classList.remove('hidden');
+
+            solvingStepsContainerEl.innerHTML = `
+                <div class="bg-slate-900/90 border border-slate-700/80 rounded-2xl p-6 flex flex-col gap-5">
+                    <div class="text-xs font-bold text-slate-400 uppercase tracking-wide">Substituted Single-Variable Equation</div>
+                    
+                    <div class="text-xl sm:text-2xl font-mono font-bold text-white bg-slate-950 p-4 rounded-xl border border-slate-800 text-center">
+                        ${lvl.targetEq.prefix}(<span class="text-teal-400">${lvl.expression}</span>)${lvl.targetEq.suffix}
+                    </div>
+
+                    <div class="bg-indigo-950/40 border border-indigo-500/20 p-4 rounded-xl text-xs sm:text-sm text-indigo-200">
+                        <i class="fa-solid fa-pen-to-square text-indigo-400 mr-1.5"></i>
+                        <span>On your paper: expand terms, combine like terms, and solve for <b class="text-white">${firstVar}</b>.</span>
+                    </div>
+
+                    <!-- INTERACTIVE INPUT FOR FIRST VARIABLE -->
+                    <div class="p-4 bg-indigo-500/10 border border-indigo-500/30 rounded-xl flex flex-col sm:flex-row items-center justify-between gap-4">
+                        <label class="text-sm font-bold text-white">Value of <span class="text-indigo-400 font-mono text-base">${firstVar}</span>:</label>
+                        <div class="flex items-center gap-3">
+                            <span class="font-mono text-lg font-bold text-indigo-300">${firstVar} =</span>
+                            <input type="number" id="first-var-input" class="w-24 bg-slate-950 border-2 border-indigo-500/50 rounded-xl px-3 py-2 text-center text-white font-mono font-bold text-lg focus:outline-none focus:border-indigo-400" placeholder="?">
+                            <button onclick="checkFirstVariable()" class="bg-indigo-600 hover:bg-indigo-500 text-white font-bold px-4 py-2 rounded-xl text-sm transition shadow-md">
+                                Verify Variable
+                            </button>
+                        </div>
+                    </div>
+                    <div id="first-var-feedback" class="text-xs text-center font-semibold hidden"></div>
+                </div>
+            `;
+        }
+
+        function checkFirstVariable() {
+            const lvl = LEVELS[currentLevelIdx];
+            const inputVal = parseInt(document.getElementById('first-var-input').value);
+            const feedbackEl = document.getElementById('first-var-feedback');
+            const expectedVal = lvl.solvedVar === 'x' ? lvl.solX : lvl.solY;
+
+            feedbackEl.classList.remove('hidden', 'text-emerald-400', 'text-rose-400');
+
+            if (inputVal === expectedVal) {
+                feedbackEl.classList.add('text-emerald-400');
+                feedbackEl.innerHTML = `<i class="fa-solid fa-circle-check"></i> Correct! ${lvl.solvedVar} = ${expectedVal}. Click Continue to solve for the second variable!`;
+                
+                nextStepBtn.disabled = false;
+                nextStepBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+                nextStepBtn.classList.add('pulse-glow');
+                nextStepBtn.onclick = setupStepSolveSecondVar;
+            } else {
+                feedbackEl.classList.add('text-rose-400');
+                feedbackEl.innerHTML = `<i class="fa-solid fa-circle-xmark"></i> Incorrect. Check your distribution and arithmetic, then try again!`;
+            }
+        }
+
+        /**
+         * SOLVE SECOND VARIABLE (BACK SUBSTITUTION - No spoilers)
+         */
+        function setupStepSolveSecondVar() {
+            const lvl = LEVELS[currentLevelIdx];
+            const activeStepNum = lvl.needsIsolation ? 4 : 3;
+            currentStep = activeStepNum;
+            updatePipelineUI(activeStepNum);
+
+            nextStepBtn.classList.remove('pulse-glow');
+            nextStepBtn.disabled = true;
+            nextStepBtn.classList.add('opacity-50', 'cursor-not-allowed');
+
+            const firstVar = lvl.solvedVar;
+            const secondVar = firstVar === 'x' ? 'y' : 'x';
+            const firstVal = firstVar === 'x' ? lvl.solX : lvl.solY;
+
+            stepInstructionEl.innerHTML = `Substitute <span class="text-indigo-400 font-mono font-bold">${firstVar} = ${firstVal}</span> back into the isolated equation and solve for <span class="text-teal-400 font-mono font-bold">${secondVar}</span>.`;
+
+            solvingStepsContainerEl.innerHTML = `
+                <div class="bg-slate-900/90 border border-slate-700/80 rounded-2xl p-6 flex flex-col gap-5">
+                    <div class="text-xs font-bold text-slate-400 uppercase tracking-wide">Back-Substitution into Isolated Equation</div>
+                    
+                    <div class="text-xl sm:text-2xl font-mono font-bold text-white bg-slate-950 p-4 rounded-xl border border-slate-800 text-center">
+                        ${secondVar} = ${lvl.expression}
+                    </div>
+
+                    <div class="bg-teal-950/40 border border-teal-500/20 p-4 rounded-xl text-xs sm:text-sm text-teal-200">
+                        <i class="fa-solid fa-pen-to-square text-teal-400 mr-1.5"></i>
+                        <span>Plug <b class="text-white">${firstVar} = ${firstVal}</b> into the expression and solve for <b class="text-white">${secondVar}</b>.</span>
+                    </div>
+
+                    <!-- INTERACTIVE INPUT FOR SECOND VARIABLE -->
+                    <div class="p-4 bg-teal-500/10 border border-teal-500/30 rounded-xl flex flex-col sm:flex-row items-center justify-between gap-4">
+                        <label class="text-sm font-bold text-white">Value of <span class="text-teal-400 font-mono text-base">${secondVar}</span>:</label>
+                        <div class="flex items-center gap-3">
+                            <span class="font-mono text-lg font-bold text-teal-300">${secondVar} =</span>
+                            <input type="number" id="second-var-input" class="w-24 bg-slate-950 border-2 border-teal-500/50 rounded-xl px-3 py-2 text-center text-white font-mono font-bold text-lg focus:outline-none focus:border-teal-400" placeholder="?">
+                            <button onclick="checkSecondVariable()" class="bg-teal-600 hover:bg-teal-500 text-slate-950 font-bold px-4 py-2 rounded-xl text-sm transition shadow-md">
+                                Verify Variable
+                            </button>
+                        </div>
+                    </div>
+                    <div id="second-var-feedback" class="text-xs text-center font-semibold hidden"></div>
+                </div>
+            `;
+        }
+
+        function checkSecondVariable() {
+            const lvl = LEVELS[currentLevelIdx];
+            const firstVar = lvl.solvedVar;
+            const secondVar = firstVar === 'x' ? 'y' : 'x';
+            const inputVal = parseInt(document.getElementById('second-var-input').value);
+            const feedbackEl = document.getElementById('second-var-feedback');
+            const expectedSecondVal = secondVar === 'x' ? lvl.solX : lvl.solY;
+
+            feedbackEl.classList.remove('hidden', 'text-emerald-400', 'text-rose-400');
+
+            if (inputVal === expectedSecondVal) {
+                feedbackEl.classList.add('text-emerald-400');
+                feedbackEl.innerHTML = `<i class="fa-solid fa-circle-check"></i> Excellent! Both values are solved. Click Continue to verify the system solution!`;
+                
+                nextStepBtn.disabled = false;
+                nextStepBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+                nextStepBtn.classList.add('pulse-glow');
+                nextStepBtn.onclick = setupStepVerification;
+            } else {
+                feedbackEl.classList.add('text-rose-400');
+                feedbackEl.innerHTML = `<i class="fa-solid fa-circle-xmark"></i> Incorrect value. Evaluate carefully using ${secondVar} = ${lvl.expression}!`;
+            }
+        }
+
+        /**
+         * SYSTEM VERIFICATION & LEVEL COMPLETION
+         */
+        function setupStepVerification() {
+            const lvl = LEVELS[currentLevelIdx];
+            const activeStepNum = lvl.needsIsolation ? 5 : 4;
+            currentStep = activeStepNum;
+            updatePipelineUI(activeStepNum);
+            nextStepBtn.classList.remove('pulse-glow');
+
+            stars += 10;
+            scoreCounterEl.innerText = stars;
+
+            stepInstructionEl.innerHTML = `Level Completed! You have solved the system of linear equations using substitution.`;
+
+            solvingStepsContainerEl.innerHTML = `
+                <div class="bg-gradient-to-b from-indigo-950/60 to-slate-900 border border-indigo-500/40 rounded-2xl p-8 flex flex-col items-center justify-center text-center gap-6 shadow-2xl">
+                    <div class="w-16 h-16 bg-emerald-500/20 text-emerald-400 rounded-full flex items-center justify-center text-3xl border border-emerald-500/40 shadow-lg shadow-emerald-500/20">
+                        <i class="fa-solid fa-check-double"></i>
+                    </div>
+
+                    <div>
+                        <h3 class="text-2xl font-extrabold text-white mb-1">System Solution Verified!</h3>
+                        <p class="text-sm text-slate-400">The intersection point coordinate is:</p>
+                    </div>
+
+                    <!-- COORDINATE BOX -->
+                    <div class="bg-slate-950 px-8 py-4 rounded-2xl border border-slate-800 text-3xl sm:text-4xl font-mono font-bold text-transparent bg-clip-text bg-gradient-to-r from-teal-300 via-indigo-300 to-purple-300 shadow-inner tracking-wider">
+                        (x, y) = (${lvl.solX}, ${lvl.solY})
+                    </div>
+
+                    <p class="text-xs text-slate-400 max-w-md">
+                        Substituting x = ${lvl.solX} and y = ${lvl.solY} simultaneously satisfies both original equations.
+                    </p>
+                </div>
+            `;
+
+            // Trigger celebration fireworks
+            confetti({
+                particleCount: 90,
+                spread: 90,
+                origin: { y: 0.5 }
+            });
+
+            // Set Next button for next level
+            if (currentLevelIdx < LEVELS.length - 1) {
+                nextStepBtn.innerHTML = `<span>Next Level</span> <i class="fa-solid fa-chevron-right text-xs"></i>`;
+                nextStepBtn.disabled = false;
+                nextStepBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+                nextStepBtn.onclick = () => loadLevel(currentLevelIdx + 1);
+            } else {
+                nextStepBtn.innerHTML = `<span>Course Mastered!</span> <i class="fa-solid fa-trophy text-amber-400"></i>`;
+                nextStepBtn.disabled = true;
+            }
+        }
+
+        /**
+         * PIPELINE INDICATOR UPDATER
+         */
+        function updatePipelineUI(stepNum) {
+            const lvl = LEVELS[currentLevelIdx];
+            const maxSteps = lvl.needsIsolation ? 5 : 4;
+
+            for (let i = 1; i <= 5; i++) {
+                const stepEl = document.getElementById(`pipeline-step-${i}`);
+                if (!stepEl) continue;
+
+                if (i > maxSteps) {
+                    stepEl.classList.add('hidden');
+                    continue;
+                }
+
+                if (i === stepNum) {
+                    stepEl.className = "flex items-center gap-3 p-3 rounded-xl bg-indigo-500/20 border border-indigo-500/40 text-indigo-200 transition-all shadow-md";
+                    stepEl.children[0].className = "w-7 h-7 rounded-lg bg-indigo-600 text-white flex items-center justify-center font-bold text-xs shrink-0";
+                } else if (i < stepNum) {
+                    stepEl.className = "flex items-center gap-3 p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 transition-all";
+                    stepEl.children[0].className = "w-7 h-7 rounded-lg bg-emerald-600 text-white flex items-center justify-center font-bold text-xs shrink-0";
+                } else {
+                    stepEl.className = "flex items-center gap-3 p-3 rounded-xl bg-slate-800/60 border border-slate-700/50 text-slate-500 transition-all";
+                    stepEl.children[0].className = "w-7 h-7 rounded-lg bg-slate-700 text-slate-400 flex items-center justify-center font-bold text-xs shrink-0";
+                }
+            }
+        }
+
+        /**
+         * RESET LEVEL
+         */
+        function resetCurrentLevel() {
+            loadLevel(currentLevelIdx);
+        }
+    </script>
+</body>
+</html>
